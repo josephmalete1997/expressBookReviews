@@ -1,56 +1,69 @@
-let books = require("./booksdb.js"); 
+const express = require('express');
+const books = require("./booksdb.js");
 
-function getBooks(callback) {
-  setTimeout(() => {  
-    callback(null, books);
-  }, 100);
-}
+const public_users = express.Router();
 
-getBooks((err, data) => {
-  if (err) console.error(err);
-  else console.log("All books:", data);
+public_users.get('/books', (req, res) => {
+  function getBooks(callback) {
+    setTimeout(() => {
+      callback(null, books);
+    }, 100);
+  }
+
+  getBooks((err, data) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(200).json(data);
+  });
 });
 
+public_users.get('/books/isbn/:isbn', (req, res) => {
+  const { isbn } = req.params;
 
-function getBookByISBN(isbn) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => { 
-      const book = Object.values(books).find(b => b.isbn === isbn);
-      if (book) resolve(book);
-      else reject(new Error(`Book with ISBN ${isbn} not found`));
-    }, 100);
-  });
-}
+  function getBookByISBN(isbn) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const book = Object.values(books).find(b => b.isbn === isbn);
+        if (book) resolve(book);
+        else reject(new Error(`Book with ISBN ${isbn} not found`));
+      }, 100);
+    });
+  }
 
-getBookByISBN("9780142437223")
-  .then(book => console.log("Book found:", book))
-  .catch(err => console.error(err.message));
+  getBookByISBN(isbn)
+    .then(book => res.status(200).json(book))
+    .catch(err => res.status(404).json({ message: err.message }));
+});
 
+public_users.get('/books/author/:author', async (req, res) => {
+  const { author } = req.params;
 
   async function getBooksByAuthor(author) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const booksByAuthor = Object.values(books).filter(b => b.author === author);
-      resolve(booksByAuthor);
-    }, 100);
-  });
-}
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const booksByAuthor = Object.values(books).filter(b => b.author === author);
+        resolve(booksByAuthor);
+      }, 100);
+    });
+  }
 
-(async () => {
-  const booksByDante = await getBooksByAuthor("Dante Alighieri");
-  console.log("Books by Dante:", booksByDante);
-})();
+  const booksByAuthor = await getBooksByAuthor(author);
+  res.status(200).json(booksByAuthor);
+});
 
-async function getBooksByTitle(title) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const booksByTitle = Object.values(books).filter(b => b.title === title);
-      resolve(booksByTitle);
-    }, 100);
-  });
-}
+public_users.get('/books/title/:title', async (req, res) => {
+  const { title } = req.params;
 
-(async () => {
-  const booksFound = await getBooksByTitle("The Divine Comedy");
-  console.log("Books with title 'The Divine Comedy':", booksFound);
-})();
+  async function getBooksByTitle(title) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const booksByTitle = Object.values(books).filter(b => b.title === title);
+        resolve(booksByTitle);
+      }, 100);
+    });
+  }
+
+  const booksByTitle = await getBooksByTitle(title);
+  res.status(200).json(booksByTitle);
+});
+
+module.exports = public_users;
